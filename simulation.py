@@ -29,12 +29,21 @@ class Robot:
     def move(self):
         if self.path:
             self.position = self.path.pop(0)
-
-        # If path is done and order is active, mark delivered
+        # If order just delivered, go back to warehouse
         if not self.path and self.target_order:
             self.target_order['delivered'] = True
-            self.busy = False
             self.target_order = None
+            from map import FW_LOCATION
+            from pathfinding import astar
+            path_back = astar(self.grid, self.position, FW_LOCATION)
+            if path_back:
+                self.path = path_back[1:]
+                self.busy = True
+            else:
+                print(f"[ERROR] Robot {self.robot_id} cannot return to warehouse from {self.position}")
+        # If no path and no target, free to take new order
+        if not self.path and not self.target_order:
+            self.busy = False
 
 class Simulation:
     def __init__(self, grid, orders, robots):
@@ -48,6 +57,8 @@ class Simulation:
         self.elapsed_seconds = 0
         self.order_id_counter = len(orders) + 1
         self.font = pygame.font.SysFont(None, 28)
+        for robot in self.robots:
+            robot.grid = self.grid
 
     def generate_order(self):
         while True:
