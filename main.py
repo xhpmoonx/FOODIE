@@ -1,19 +1,9 @@
 from map import generate_map
-from simulation import Simulation, Robot
+from simulation import Simulation
 from pathfinding import astar
+from data import sample_robots,warehouse_location
+from config import sample_orders
 
-sample_orders = [
-    {'order_id': 1, 'location': (5, 15), 'assigned': False},
-    {'order_id': 2, 'location': (12, 7), 'assigned': False},
-    {'order_id': 3, 'location': (15, 10), 'assigned': False}
-]
-warehouse_location = (0, 0)
-
-sample_robots = [
-    Robot('R1', warehouse_location),
-    Robot('R2', warehouse_location),
-    Robot('R3', warehouse_location)
-]
 
 if __name__ == '__main__':
     campus_map, _ = generate_map()

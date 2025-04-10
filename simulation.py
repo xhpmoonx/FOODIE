@@ -1,7 +1,7 @@
 import pygame
 import sys
 import random
-from map import generate_map, FW_LOCATION, MAP_SIZE
+from config import MAP_SIZE, FW_LOCATION
 from pathfinding import astar
 
 CELL_SIZE = 30
