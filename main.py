@@ -7,6 +7,7 @@ from config import sample_orders
 
 if __name__ == '__main__':
     campus_map, _ = generate_map() # Returns a representation of the environmen
+    """ #TEST#
     available_robots = sample_robots[:]  # make a copy so we can remove assigned ones
 
     # Loop over each predefined order to assign it to the closest available robot
@@ -24,7 +25,8 @@ if __name__ == '__main__':
         # If a valid robot and path were found, assign the order
         if closest_robot and shortest_path:
             order['assigned'] = True
-            closest_robot.set_path(shortest_path, order)
+            closest_robot.add_order(shortest_path, order)
+            #closest_robot.set_path(shortest_path, order)
             available_robots.remove(closest_robot)
         else:
             print(f"[ERROR] No valid robot for Order {order['order_id']} at {order['location']}")
@@ -39,6 +41,8 @@ if __name__ == '__main__':
             print(f"[ERROR] No valid path for Robot {robot.robot_id} to Order {order['order_id']} at {order['location']}")
 
     '''
+    """
     # Initialize and start the simulation with the map, orders, and robots
-    sim = Simulation(campus_map, sample_orders, sample_robots)
+    #sim = Simulation(campus_map, sample_orders, sample_robots)
+    sim = Simulation(campus_map, [], sample_robots)
     sim.run() # Launches the visual simulation using Pygame
