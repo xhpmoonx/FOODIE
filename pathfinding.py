@@ -1,10 +1,12 @@
 import heapq
+import numpy as np
 
+# The “h” score is calculated by Euclidean distance instead of Manhattan distance.
 def heuristic(a, b):
-    return abs(a[0] - b[0]) + abs(a[1] - b[1])
-
+    return np.sqrt(((b[0] - a[0] )**2)+((b[1]-a[1])**2))
+# Improving Robot Direction movability : The agent can move horizontally and vertically, but also diagonally.
 def astar(grid, start, goal):
-    neighbors = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+    neighbors = [(-1, 0), (1, 0), (0, -1), (0, 1),(-1,-1),(1,-1),(-1,1),(1,1)]
     close_set = set()
     came_from = {}
     gscore = {start: 0}
