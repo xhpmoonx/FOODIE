@@ -3,6 +3,7 @@ import sys
 import random
 from config import MAP_SIZE, FW_LOCATION
 from pathfinding import astar
+import numpy as np
 
 CELL_SIZE = 30
 GRID_COLOR = (200, 200, 200)
@@ -13,30 +14,38 @@ ASSIGNED_ORDER_COLOR = (255, 0, 0)
 DELIVERED_ORDER_COLOR = (0, 200, 0)
 WAREHOUSE_COLOR = (0, 0, 255)
 
+"""This class handles individual robot behavior
+
+"""
 class Robot:
     def __init__(self, robot_id, position):
         self.robot_id = robot_id
         self.position = position
-        self.path = []
-        self.busy = False
-        self.target_order = None
-        self.move_delay = 0
+        self.path = [] # List of positions to follow
+        self.busy = False # Whether robot is currently delivering
+        self.target_order = None # The assigned order
+        self.move_delay = 0 # Simulate speed control
 
+    # Stores a path and links it to an order. Starts moving if a path is set.
     def set_path(self, path, order):
         self.path = path[1:] if path else []
         self.busy = bool(self.path)
         self.target_order = order
+
+    # Scans a 5x5 square centered on the robot to find the Manhattan distance to the closest obstacle     
     def distance_to_nearest_obstacle(self):
         x, y = self.position
         min_dist = float('inf')
         for i in range(max(0, x-2), min(len(self.grid), x+3)):
             for j in range(max(0, y-2), min(len(self.grid[0]), y+3)):
                 if self.grid[i][j] == 1:
-                    dist = abs(i - x) + abs(j - y)
+                    dist = np.sqrt(((i - x )**2)+((j-y)**2))
+                    #dist = abs(i - x) + abs(j - y)
                     if dist < min_dist:
                         min_dist = dist
         return min_dist
-
+    
+    # Chooses a speed mode based on how close the robot is to an obstacle
     def get_speed_mode(self):
         dist = self.distance_to_nearest_obstacle()
         if dist <= 1:
@@ -45,16 +54,18 @@ class Robot:
             return "normal"    # medium
         else:
             return "fast"      # fast
-
+    
+    # Controls how the robot moves in each simulation tick
     def move(self):
+        # Determine Robot's speed
         speed_mode = self.get_speed_mode()
         delay_map = {"fast": 1, "normal": 2, "cautious": 3}
-
         self.move_delay += 1
         if self.move_delay < delay_map[speed_mode]:
             return
         self.move_delay = 0
 
+        # Takes the next step on the path
         if self.path:
             self.position = self.path.pop(0)
 
@@ -74,7 +85,9 @@ class Robot:
         if not self.path and not self.target_order:
             self.busy = False
 
+"""Handles the whole simulation loop, screen drawing, event handling, and robot coordination.
 
+"""
 class Simulation:
     def __init__(self, grid, orders, robots):
         pygame.init()
