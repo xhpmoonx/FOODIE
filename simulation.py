@@ -20,20 +20,48 @@ class Robot:
         self.path = []
         self.busy = False
         self.target_order = None
+        self.move_delay = 0
 
     def set_path(self, path, order):
         self.path = path[1:] if path else []
         self.busy = bool(self.path)
         self.target_order = order
+    def distance_to_nearest_obstacle(self):
+        x, y = self.position
+        min_dist = float('inf')
+        for i in range(max(0, x-2), min(len(self.grid), x+3)):
+            for j in range(max(0, y-2), min(len(self.grid[0]), y+3)):
+                if self.grid[i][j] == 1:
+                    dist = abs(i - x) + abs(j - y)
+                    if dist < min_dist:
+                        min_dist = dist
+        return min_dist
+
+    def get_speed_mode(self):
+        dist = self.distance_to_nearest_obstacle()
+        if dist <= 1:
+            return "cautious"  # slow
+        elif dist <= 3:
+            return "normal"    # medium
+        else:
+            return "fast"      # fast
 
     def move(self):
+        speed_mode = self.get_speed_mode()
+        delay_map = {"fast": 1, "normal": 2, "cautious": 3}
+
+        self.move_delay += 1
+        if self.move_delay < delay_map[speed_mode]:
+            return
+        self.move_delay = 0
+
         if self.path:
             self.position = self.path.pop(0)
+
         # If order just delivered, go back to warehouse
         if not self.path and self.target_order:
             self.target_order['delivered'] = True
             self.target_order = None
-            from map import FW_LOCATION
             from pathfinding import astar
             path_back = astar(self.grid, self.position, FW_LOCATION)
             if path_back:
@@ -41,9 +69,11 @@ class Robot:
                 self.busy = True
             else:
                 print(f"[ERROR] Robot {self.robot_id} cannot return to warehouse from {self.position}")
+
         # If no path and no target, free to take new order
         if not self.path and not self.target_order:
             self.busy = False
+
 
 class Simulation:
     def __init__(self, grid, orders, robots):
