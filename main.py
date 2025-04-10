@@ -4,7 +4,8 @@ from pathfinding import astar
 
 sample_orders = [
     {'order_id': 1, 'location': (5, 15), 'assigned': False},
-    {'order_id': 2, 'location': (12, 7), 'assigned': False}
+    {'order_id': 2, 'location': (12, 7), 'assigned': False},
+    {'order_id': 3, 'location': (15, 10), 'assigned': False}
 ]
 warehouse_location = (0, 0)
 
