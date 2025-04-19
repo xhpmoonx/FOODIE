@@ -33,13 +33,6 @@ class Robot:
         self.wait_start_time = None
         self.at_warehouse = True
 
-    """
-    # Stores a path and links it to an order. Starts moving if a path is set.
-    def set_path(self, path, order):
-        self.path = path[1:] if path else []
-        self.busy = bool(self.path)
-        self.target_order = order
-    """
     # Adds a new delivery to the robot's task list and sets its next path if idle.
     def add_order(self, path, order):
         self.orders_queue.append(order)
@@ -116,38 +109,6 @@ class Robot:
         # Check if robot is back at warehouse
         if self.position == FW_LOCATION and not self.orders_queue:
             self.at_warehouse = True
-
-    '''
-    # Controls how the robot moves in each simulation tick
-    def move(self):
-        # Determine Robot's speed
-        speed_mode = self.get_speed_mode()
-        delay_map = {"fast": 1, "normal": 2, "cautious": 3}
-        self.move_delay += 1
-        if self.move_delay < delay_map[speed_mode]:
-            return
-        self.move_delay = 0
-
-        # Takes the next step on the path
-        if self.path:
-            self.position = self.path.pop(0)
-
-        # If order just delivered, go back to warehouse
-        if not self.path and self.target_order:
-            self.target_order['delivered'] = True
-            self.target_order = None
-            from pathfinding import astar
-            path_back = astar(self.grid, self.position, FW_LOCATION)
-            if path_back:
-                self.path = path_back[1:]
-                self.busy = True
-            else:
-                print(f"[ERROR] Robot {self.robot_id} cannot return to warehouse from {self.position}")
-
-        # If no path and no target, free to take new order
-        if not self.path and not self.target_order:
-            self.busy = False
-    '''
 
 """Handles the whole simulation loop, screen drawing, event handling, and robot coordination.
 
@@ -285,20 +246,6 @@ class Simulation:
             return True
 
         return False
-
-
-    """
-    def assign_order(self, order):
-        for robot in self.robots:
-            if not robot.busy:
-                path = astar(self.grid, robot.position, order['location'])
-                if path:
-                    order['assigned'] = True
-                    robot.set_path(path, order)
-                    print(f"[INFO] Assigned Order {order['order_id']} to Robot {robot.robot_id}")
-                    self.orders.append(order)
-                    return True
-        return False """
 
     def draw_grid(self):
         self.screen.fill((255, 255, 255))

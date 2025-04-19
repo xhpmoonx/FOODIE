@@ -2,7 +2,7 @@ from map import generate_map
 from simulation import Simulation
 from pathfinding import astar
 from data import sample_robots,warehouse_location
-from config import sample_orders
+#from config import sample_orders
 
 
 if __name__ == '__main__':

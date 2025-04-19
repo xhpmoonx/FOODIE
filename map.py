@@ -1,6 +1,6 @@
 import numpy as np
 import random
-from config import  MAP_SIZE, OBSTACLE_RATIO, FW_LOCATION, SP_LOCATION
+from config import  MAP_SIZE, OBSTACLE_RATIO, FW_LOCATION
 
 
 def generate_map(size=MAP_SIZE, obstacle_ratio=OBSTACLE_RATIO):
@@ -11,8 +11,8 @@ def generate_map(size=MAP_SIZE, obstacle_ratio=OBSTACLE_RATIO):
     # Random Obstacle Placement:
     while len(obstacles) < num_obstacles:
         x, y = random.randint(0, size - 1), random.randint(0, size - 1)
-        # Avoiding the warehouse and sample order locations
-        if (x, y) != FW_LOCATION and (x, y) not in SP_LOCATION:
+        # Avoiding the warehouse
+        if (x, y) != FW_LOCATION:
             obstacles.add((x, y))
             grid[x, y] = 1
 
