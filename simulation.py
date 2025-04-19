@@ -131,7 +131,17 @@ class Simulation:
     def assign_orders_in_batch(self):
         # Filter unassigned orders
         unassigned = [o for o in self.orders if not o['assigned']]
-        random.shuffle(unassigned)  # Randomize to avoid bias
+        # Smart priority: older and closer to warehouse = higher score
+        def order_priority(order):
+            age = (pygame.time.get_ticks() - order.get('created_time', 0)) // 1000
+            dx = order['location'][0] - FW_LOCATION[0]
+            dy = order['location'][1] - FW_LOCATION[1]
+            dist = (dx * dx + dy * dy) ** 0.5
+            return age - dist  # higher = better (older & closer)
+
+        # Sort unassigned orders by smart score
+        unassigned.sort(key=order_priority, reverse=True)
+
 
         for robot in [r for r in self.robots if r.at_warehouse and not r.busy]:
             if not unassigned:
@@ -185,7 +195,13 @@ class Simulation:
         while True:
             x, y = random.randint(0, MAP_SIZE - 1), random.randint(0, MAP_SIZE - 1)
             if self.grid[x][y] == 0 and (x, y) != FW_LOCATION:
-                return {'order_id': self.order_id_counter, 'location': (x, y), 'assigned': False, 'delivered': False}
+                return {
+                    'order_id': self.order_id_counter,
+                    'location': (x, y),
+                    'assigned': False,
+                    'delivered': False,
+                    'created_time': pygame.time.get_ticks()
+                }
 
     def assign_order(self, order):
         # Helper to find nearby unassigned orders
@@ -267,7 +283,10 @@ class Simulation:
             elif order.get('assigned'):
                 color = ASSIGNED_ORDER_COLOR
             else:
-                color = ORDER_COLOR
+                # Unassigned - darken gray over time
+                age = (pygame.time.get_ticks() - order.get('created_time', 0)) // 1000  # seconds
+                shade = max(50, 150 - age * 10)  # gets darker every 1s, stops at 50
+                color = (shade, shade, shade)
             pygame.draw.circle(self.screen, color, (oy * CELL_SIZE + 15, ox * CELL_SIZE + 15), 10)
 
         for robot in self.robots:
