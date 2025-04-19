@@ -125,7 +125,7 @@ class Simulation:
         self.grid = grid
         self.orders = orders
         self.robots = robots
-        self.screen = pygame.display.set_mode((MAP_SIZE * CELL_SIZE, MAP_SIZE * CELL_SIZE + 40))
+        self.screen = pygame.display.set_mode((MAP_SIZE * CELL_SIZE, MAP_SIZE * CELL_SIZE + 120))
         pygame.display.set_caption("FOODIE Simulation")
         self.clock = pygame.time.Clock()
         self.elapsed_seconds = 0
@@ -307,6 +307,34 @@ class Simulation:
 
         info_text = self.font.render(f"Orders Generated: {self.order_id_counter - 1}", True, (0, 0, 0))
         self.screen.blit(info_text, (10, MAP_SIZE * CELL_SIZE + 10))
+        self.draw_stats_panel()
+
+    def draw_stats_panel(self):
+        panel_top = MAP_SIZE * CELL_SIZE + 10
+        line_height = 22
+        padding = 10
+
+        # Draw background panel
+        pygame.draw.rect(
+            self.screen,
+            (240, 240, 240),  # light gray background
+            (0, MAP_SIZE * CELL_SIZE, MAP_SIZE * CELL_SIZE, 110)
+        )
+
+        # Title
+        title = self.font.render("Delivery Stats", True, (0, 0, 0))
+        self.screen.blit(title, (padding, panel_top))
+
+        # Total orders
+        total_orders = self.font.render(f"Total Orders: {self.order_id_counter - 1}", True, (0, 0, 0))
+        self.screen.blit(total_orders, (padding, panel_top + line_height))
+
+        # Robot stats
+        for i, robot in enumerate(self.robots):
+            avg_time = robot.total_delivery_time / robot.deliveries if robot.deliveries else 0
+            stats_line = f"{robot.robot_id}: {robot.deliveries} deliveries | avg: {avg_time:.1f}s"
+            text = self.font.render(stats_line, True, (0, 0, 0))
+            self.screen.blit(text, (padding, panel_top + line_height * (i + 2)))
 
     def run(self):
         running = True
