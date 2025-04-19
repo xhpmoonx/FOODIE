@@ -150,16 +150,22 @@ class Simulation:
             # Take one order and try to find nearby ones
             base_order = unassigned.pop(0)
             group = [base_order]
+            base_order['assigned'] = True  # mark it early too
 
             # Group nearby orders up to MAX
             for other in unassigned[:]:
+                if other['assigned']:
+                    continue  # skip already taken orders
+
                 dx = base_order['location'][0] - other['location'][0]
                 dy = base_order['location'][1] - other['location'][1]
-                if dx * dx + dy * dy <= 25:  # radius squared = 5^2
+                if dx * dx + dy * dy <= 25:
                     group.append(other)
+                    other['assigned'] = True  # pre-assign to lock it
                     unassigned.remove(other)
                     if len(group) == MAX_ORDERS_PER_ROBOT:
                         break
+
 
             # Try all permutations of the order group and pick the shortest total path
             best_order_sequence = None
