@@ -6,7 +6,7 @@ from config import sample_orders
 
 
 if __name__ == '__main__':
-    campus_map, _ = generate_map() # Returns a representation of the environmen
+    campus_map, _ = generate_map() # Returns a representation of the environment
     """ #TEST#
     available_robots = sample_robots[:]  # make a copy so we can remove assigned ones
 
@@ -41,8 +41,8 @@ if __name__ == '__main__':
             print(f"[ERROR] No valid path for Robot {robot.robot_id} to Order {order['order_id']} at {order['location']}")
 
     '''
+    #sim = Simulation(campus_map, sample_orders, sample_robots)
     """
     # Initialize and start the simulation with the map, orders, and robots
-    #sim = Simulation(campus_map, sample_orders, sample_robots)
     sim = Simulation(campus_map, [], sample_robots)
     sim.run() # Launches the visual simulation using Pygame

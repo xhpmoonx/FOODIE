@@ -1,7 +1,7 @@
 from simulation import Robot
 
 
-warehouse_location = (0, 0)
+warehouse_location = (0, 0) # Warehouse Location
 
 sample_robots = [
     Robot('R1', warehouse_location),

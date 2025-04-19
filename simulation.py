@@ -9,11 +9,11 @@ CELL_SIZE = 30
 GRID_COLOR = (200, 200, 200)
 OBSTACLE_COLOR = (0, 0, 0)
 ROBOT_COLOR = (255, 165, 0)
-ORDER_COLOR = (165, 165, 0)
-ASSIGNED_ORDER_COLOR = (255, 0, 0)
-DELIVERED_ORDER_COLOR = (0, 200, 0)
+ORDER_COLOR = (150, 150, 150)         # New order (unassigned) - Gray-ish
+ASSIGNED_ORDER_COLOR = (255, 0, 0)  # Assigned (not yet picked up) - Red
+DELIVERED_ORDER_COLOR = (0, 200, 0)  # Delivered - Green
 WAREHOUSE_COLOR = (0, 0, 255)
-MAX_ORDERS_PER_ROBOT = 2
+MAX_ORDERS_PER_ROBOT = 4
 
 """This class handles individual robot behavior
 
@@ -27,6 +27,10 @@ class Robot:
         #self.target_order = None # The assigned order
         self.orders_queue = []  # Queue of orders
         self.move_delay = 0 # Simulate speed control
+        self.waiting = False
+        self.wait_start_time = None
+        self.at_warehouse = True
+
     """
     # Stores a path and links it to an order. Starts moving if a path is set.
     def set_path(self, path, order):
@@ -53,7 +57,13 @@ class Robot:
             else:
                 print(f"[ERROR] Robot {self.robot_id} cannot find path to {next_target} from {self.position}")
         else:
-            self.busy = False
+            if self.position != FW_LOCATION:
+                path = astar(self.grid, self.position, FW_LOCATION)
+                if path:
+                    self.path = path[1:]
+                self.busy = True
+            else:
+                self.busy = False
 
     # Scans a 5x5 square centered on the robot to find the Manhattan distance to the closest obstacle     
     def distance_to_nearest_obstacle(self):
@@ -80,20 +90,31 @@ class Robot:
         
     # Controls how the robot moves in each simulation tick
     def move(self):
-        # Determine Robot's speed
-        speed_mode = self.get_speed_mode()
-        delay_map = {"fast": 1, "normal": 2, "cautious": 3}
-        self.move_delay += 1
-        if self.move_delay < delay_map[speed_mode]:
-            return
-        self.move_delay = 0
+        # If robot is at warehouse and idle, begin waiting
+        if self.at_warehouse and not self.path and not self.waiting:
+            self.waiting = True
+            self.wait_start_time = pygame.time.get_ticks()
 
-        # Takes the next step on the path
+        # Wait 5 seconds (5000 milliseconds)
+        if self.waiting:
+            if pygame.time.get_ticks() - self.wait_start_time >= 5000:
+                self.waiting = False
+                self.at_warehouse = False  # done waiting
+            else:
+                return  # still waiting, do nothing
+
+        # Standard movement logic
+        ...
         if self.path:
             self.position = self.path.pop(0)
 
         if not self.path:
             self.proceed_to_next_task()
+
+        # Check if robot is back at warehouse
+        if self.position == FW_LOCATION and not self.orders_queue:
+            self.at_warehouse = True
+
     '''
     # Controls how the robot moves in each simulation tick
     def move(self):
@@ -143,42 +164,108 @@ class Simulation:
         self.font = pygame.font.SysFont(None, 28)
         for robot in self.robots:
             robot.grid = self.grid
+    def assign_orders_in_batch(self):
+    # Filter unassigned orders
+        unassigned = [o for o in self.orders if not o['assigned']]
+        random.shuffle(unassigned)  # Randomize to avoid bias
+
+        for robot in [r for r in self.robots if r.at_warehouse and not r.busy]:
+            if not unassigned:
+                break
+
+            # Take one order and try to find nearby ones
+            base_order = unassigned.pop(0)
+            group = [base_order]
+
+            # Group nearby orders up to MAX
+            for other in unassigned[:]:
+                dx = base_order['location'][0] - other['location'][0]
+                dy = base_order['location'][1] - other['location'][1]
+                if dx * dx + dy * dy <= 25:  # radius squared = 5^2
+                    group.append(other)
+                    unassigned.remove(other)
+                    if len(group) == MAX_ORDERS_PER_ROBOT:
+                        break
+
+            # Assign all grouped orders to robot
+            last_pos = robot.position
+            for order in group:
+                path = astar(self.grid, last_pos, order['location'])
+                if path:
+                    robot.add_order(path, order)
+                    order['assigned'] = True
+                    last_pos = order['location']
+                else:
+                    print(f"[ERROR] No path for robot {robot.robot_id} to order {order['order_id']}")
+            print(f"[INFO] Robot {robot.robot_id} assigned orders {[o['order_id'] for o in group]}")
+
 
     def generate_order(self):
         while True:
             x, y = random.randint(0, MAP_SIZE - 1), random.randint(0, MAP_SIZE - 1)
             if self.grid[x][y] == 0 and (x, y) != FW_LOCATION:
                 return {'order_id': self.order_id_counter, 'location': (x, y), 'assigned': False, 'delivered': False}
+
     def assign_order(self, order):
+        # Helper to find nearby unassigned orders
+        def find_nearby_orders(base_order, radius=5):
+            neighbors = []
+            for other in self.orders:
+                if not other['assigned'] and other != base_order:
+                    dx = other['location'][0] - base_order['location'][0]
+                    dy = other['location'][1] - base_order['location'][1]
+                    if dx * dx + dy * dy <= radius * radius:
+                        neighbors.append(other)
+            return neighbors
+
+        # Only consider robots at the warehouse and not busy
+        candidates = [robot for robot in self.robots if robot.at_warehouse and not robot.busy]
+
+        if not candidates:
+            return False
+
+        # Get nearby unassigned orders
+        nearby_orders = find_nearby_orders(order)
+        selected_orders = [order]
+
+        # Try to include up to MAX_ORDERS_PER_ROBOT orders
+        for o in nearby_orders:
+            if len(selected_orders) < MAX_ORDERS_PER_ROBOT:
+                selected_orders.append(o)
+
+        # Assign all selected orders to the best robot
         best_robot = None
         best_score = float('inf')
 
-        for robot in self.robots:
-            if len(robot.orders_queue) < 2:
-                # Choose location to path from
-                if robot.orders_queue:
-                    last_pos = robot.orders_queue[-1]['location']
-                elif robot.path:
-                    last_pos = robot.path[-1]
-                else:
-                    last_pos = robot.position
-
-                path = astar(self.grid, last_pos, order['location'])
+        for robot in candidates:
+            total_distance = 0
+            last_pos = robot.position
+            valid = True
+            for o in selected_orders:
+                path = astar(self.grid, last_pos, o['location'])
                 if path:
-                    # Use path length as a proxy for distance/effort
-                    score = len(path)
-                    if score < best_score:
-                        best_score = score
-                        best_robot = robot
+                    total_distance += len(path)
+                    last_pos = o['location']
+                else:
+                    valid = False
+                    break
+            if valid and total_distance < best_score:
+                best_score = total_distance
+                best_robot = robot
 
         if best_robot:
-            path = astar(self.grid, best_robot.orders_queue[-1]['location'] if best_robot.orders_queue else best_robot.position, order['location'])
-            order['assigned'] = True
-            best_robot.add_order(path, order)
-            print(f"[INFO] Smart-assigned Order {order['order_id']} to Robot {best_robot.robot_id}")
-            self.orders.append(order)
+            last_pos = best_robot.position
+            for o in selected_orders:
+                path = astar(self.grid, last_pos, o['location'])
+                best_robot.add_order(path, o)
+                o['assigned'] = True
+                last_pos = o['location']
+            self.orders.extend(o for o in selected_orders if o not in self.orders)
+            print(f"[INFO] Robot {best_robot.robot_id} assigned orders {[o['order_id'] for o in selected_orders]}")
             return True
+
         return False
+
 
     """
     def assign_order(self, order):
@@ -233,13 +320,16 @@ class Simulation:
                 if event.type == pygame.QUIT:
                     running = False
 
-            if self.elapsed_seconds % 10 == 0:
+            # Every 3 seconds, generate one new order
+            if self.elapsed_seconds % 3 == 0:
                 new_order = self.generate_order()
                 new_order['order_id'] = self.order_id_counter
-                if self.assign_order(new_order):
-                    self.order_id_counter += 1
-                else:
-                    print(f"[INFO] No available robot for Order {new_order['order_id']}, retrying later")
+                self.orders.append(new_order)
+                self.order_id_counter += 1
+
+            # On the next tick, assign any unassigned orders in batch
+            if self.elapsed_seconds % 3 == 1:
+                self.assign_orders_in_batch()
 
             for robot in self.robots:
                 robot.move()
