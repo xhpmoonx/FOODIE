@@ -32,6 +32,9 @@ class Robot:
         self.waiting = False
         self.wait_start_time = None
         self.at_warehouse = True
+        self.deliveries = 0
+        self.total_delivery_time = 0
+
 
     # Adds a new delivery to the robot's task list and sets its next path if idle.
     def add_order(self, path, order):
@@ -45,6 +48,9 @@ class Robot:
         if self.orders_queue:
             completed_order = self.orders_queue.pop(0)
             completed_order['delivered'] = True
+            delivery_time = (pygame.time.get_ticks() - completed_order.get('created_time', 0)) // 1000
+            self.total_delivery_time += delivery_time
+            self.deliveries += 1
             next_target = self.orders_queue[0]['location'] if self.orders_queue else FW_LOCATION
             path = astar(self.grid, self.position, next_target)
             if path:
@@ -328,6 +334,10 @@ class Simulation:
 
             self.draw_grid()
             pygame.display.flip()
-
+        # Show delivery stats
+        print("\n==== DELIVERY STATS ====")
+        for robot in self.robots:
+            avg_time = robot.total_delivery_time / robot.deliveries if robot.deliveries else 0
+            print(f"{robot.robot_id}: {robot.deliveries} deliveries, avg time = {avg_time:.2f} sec")
         pygame.quit()
         sys.exit()
