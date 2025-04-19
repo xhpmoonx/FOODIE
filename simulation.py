@@ -1,3 +1,5 @@
+from itertools import permutations
+
 import pygame
 import sys
 import random
@@ -164,8 +166,9 @@ class Simulation:
         self.font = pygame.font.SysFont(None, 28)
         for robot in self.robots:
             robot.grid = self.grid
+
     def assign_orders_in_batch(self):
-    # Filter unassigned orders
+        # Filter unassigned orders
         unassigned = [o for o in self.orders if not o['assigned']]
         random.shuffle(unassigned)  # Randomize to avoid bias
 
@@ -187,17 +190,34 @@ class Simulation:
                     if len(group) == MAX_ORDERS_PER_ROBOT:
                         break
 
-            # Assign all grouped orders to robot
-            last_pos = robot.position
-            for order in group:
-                path = astar(self.grid, last_pos, order['location'])
-                if path:
+            # Try all permutations of the order group and pick the shortest total path
+            best_order_sequence = None
+            best_total_distance = float('inf')
+
+            for perm in permutations(group):
+                total_distance = 0
+                last_pos = robot.position
+                valid = True
+                for order in perm:
+                    path = astar(self.grid, last_pos, order['location'])
+                    if not path:
+                        valid = False
+                        break
+                    total_distance += len(path)
+                    last_pos = order['location']
+                if valid and total_distance < best_total_distance:
+                    best_total_distance = total_distance
+                    best_order_sequence = perm
+
+            # Assign orders in optimal sequence
+            if best_order_sequence:
+                last_pos = robot.position
+                for order in best_order_sequence:
+                    path = astar(self.grid, last_pos, order['location'])
                     robot.add_order(path, order)
                     order['assigned'] = True
                     last_pos = order['location']
-                else:
-                    print(f"[ERROR] No path for robot {robot.robot_id} to order {order['order_id']}")
-            print(f"[INFO] Robot {robot.robot_id} assigned orders {[o['order_id'] for o in group]}")
+                print(f"[INFO] Robot {robot.robot_id} assigned orders {[o['order_id'] for o in best_order_sequence]}")
 
 
     def generate_order(self):
