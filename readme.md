@@ -16,6 +16,7 @@ Autonomous campus food delivery simulation with real-time visual feedback, robot
 ```bash
 pip install pygame
 python main.py
+```
 
 ## 🎨 Visual Key
 
