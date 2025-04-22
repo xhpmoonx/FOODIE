@@ -195,7 +195,7 @@ class Simulation:
     def generate_order(self):
         while True:
             x, y = random.randint(0, MAP_SIZE - 1), random.randint(0, MAP_SIZE - 1)
-            if self.grid[x][y] == 0 and (x, y) != FW_LOCATION:
+            if astar(self.grid, FW_LOCATION, (x, y)):
                 return {
                     'order_id': self.order_id_counter,
                     'location': (x, y),
