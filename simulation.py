@@ -94,12 +94,19 @@ class Robot:
             self.wait_start_time = pygame.time.get_ticks()                   # Start waiting timer
 
         if self.waiting:
-            if pygame.time.get_ticks() - self.wait_start_time >= 5000:       # Wait 5 seconds (5000 milliseconds)
+            if pygame.time.get_ticks() - self.wait_start_time >= 1500:       # Wait 1.5 seconds (5000 milliseconds)
                 self.waiting = False
                 self.at_warehouse = False                                    # Done waiting
             else:
                 return                                                       # Still waiting, do nothing
-        
+        # Check speed mode :    
+        mode = self.get_speed_mode()
+        speed_map = {"cautious": 3, "normal": 2, "fast": 1}  # Delay in ticks
+        if self.move_delay < speed_map[mode]:
+            self.move_delay += 1
+            return
+        self.move_delay = 0
+
         # Standard movement logic :
         if self.path:
             self.position = self.path.pop(0)
@@ -337,8 +344,8 @@ class Simulation:
     def run(self):
         running = True
         while running:
-            # Limit the simulation to 10 frames (ticks) per second
-            self.clock.tick(10)             
+            # Limit the simulation to 20 frames (ticks) per second
+            self.clock.tick(20)             
             self.elapsed_seconds += 1
 
             # Exit the loop if the user closes the window
@@ -346,15 +353,15 @@ class Simulation:
                 if event.type == pygame.QUIT:
                     running = False
 
-            # Every 5 seconds, generate one new order
-            if self.elapsed_seconds % 5 == 0:
+            # Every 8 seconds, generate one new order
+            if self.elapsed_seconds % 8 == 0:
                 new_order = self.generate_order()
                 new_order['order_id'] = self.order_id_counter
                 self.orders.append(new_order)
                 self.order_id_counter += 1
 
             # On the next tick, assign any unassigned orders in batch
-            if self.elapsed_seconds % 5 == 1:
+            if self.elapsed_seconds % 8 == 1:
                 self.assign_orders_in_batch()
             # Move all robots
             for robot in self.robots:
