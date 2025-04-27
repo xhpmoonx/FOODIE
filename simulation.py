@@ -46,6 +46,7 @@ class Robot:
         if self.orders_queue:
             completed_order = self.orders_queue.pop(0)      # Remove the completed order
             completed_order['delivered'] = True             # Mark as delivered
+            completed_order['delivered_time'] = pygame.time.get_ticks()
             delivery_time = (pygame.time.get_ticks() - completed_order.get('created_time', 0)) // 1000   # Cal how long the order took to get delivered
             self.total_delivery_time += delivery_time       # Add to delivery time
             self.deliveries += 1                            # Add delivery count
@@ -146,7 +147,7 @@ class Simulation:
             dx = order['location'][0] - FW_LOCATION[0]                                  # Horizontal distance from warehouse
             dy = order['location'][1] - FW_LOCATION[1]                                  # Vertical distance from warehouse
             dist = (dx * dx + dy * dy) ** 0.5                                           # Euclidean distance
-            return age - dist                                                           # higher = better (older & closer)
+            return (age*1.5) - dist                                                     # higher = better (older with stronger bias & closer)
         
         unassigned.sort(key=order_priority, reverse=True)                               # Sort unassigned orders by smart score
         for robot in [r for r in self.robots if r.at_warehouse and not r.busy]:         # Loop through robots that are currently idle at the warehouse
@@ -200,9 +201,15 @@ class Simulation:
 
     '''Generates a random, valid order'''
     def generate_order(self):
+        existing_locations = {order['location'] for order in self.orders}  # Collect all current order locations
         while True:
             x, y = random.randint(0, MAP_SIZE - 1), random.randint(0, MAP_SIZE - 1)
-            if astar(self.grid, FW_LOCATION, (x, y)):
+            if (
+                self.grid[x][y] == 0 and                      # Not an obstacle
+                (x, y) != FW_LOCATION and                     # Not the warehouse
+                (x, y) not in existing_locations and          # Not already taken by another order
+                astar(self.grid, FW_LOCATION, (x, y))         # Must be reachable
+            ):
                 return {
                     'order_id': self.order_id_counter,
                     'location': (x, y),
@@ -289,10 +296,14 @@ class Simulation:
         pygame.draw.rect(self.screen, WAREHOUSE_COLOR, (wy * CELL_SIZE, wx * CELL_SIZE, CELL_SIZE, CELL_SIZE))
 
         # Draw orders
+        orders_to_remove = []
         for order in self.orders:
             ox, oy = order['location']
             if order.get('delivered'):
                 color = DELIVERED_ORDER_COLOR
+                if pygame.time.get_ticks() - order.get('delivered_time', 0) > 2000:
+                    orders_to_remove.append(order)
+                    continue 
             elif order.get('assigned'):
                 color = ASSIGNED_ORDER_COLOR
             else:
@@ -301,6 +312,10 @@ class Simulation:
                 shade = max(50, 150 - age * 10)  # gets darker every 1s, stops at 50
                 color = (shade, shade, shade)
             pygame.draw.circle(self.screen, color, (oy * CELL_SIZE + 15, ox * CELL_SIZE + 15), 10)
+
+        # Remove delivered orders from the main list
+        for order in orders_to_remove:
+            self.orders.remove(order)
 
         # Draw robots
         for robot in self.robots:
@@ -353,15 +368,15 @@ class Simulation:
                 if event.type == pygame.QUIT:
                     running = False
 
-            # Every 8 seconds, generate one new order
-            if self.elapsed_seconds % 8 == 0:
+            # Every 10 seconds, generate one new order
+            if self.elapsed_seconds % 10 == 0:
                 new_order = self.generate_order()
                 new_order['order_id'] = self.order_id_counter
                 self.orders.append(new_order)
                 self.order_id_counter += 1
 
             # On the next tick, assign any unassigned orders in batch
-            if self.elapsed_seconds % 8 == 1:
+            if self.elapsed_seconds % 10 == 1:
                 self.assign_orders_in_batch()
             # Move all robots
             for robot in self.robots:
