@@ -4,7 +4,7 @@ import pygame
 import sys
 import random
 from config import MAP_SIZE, FW_LOCATION
-from pathfinding import astar
+from pathfinding import astar,dfs,bfs,dijkstra
 import numpy as np
 
 CELL_SIZE = 30                        # Size of each grid cell in pixels

@@ -1,6 +1,6 @@
 from map import generate_map
 from simulation import Simulation
-from pathfinding import astar
+from pathfinding import astar,dfs,bfs,dijkstra
 from data import sample_robots,warehouse_location
 #from config import sample_orders
 
