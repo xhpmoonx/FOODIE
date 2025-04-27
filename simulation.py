@@ -279,6 +279,18 @@ class Simulation:
 
         return False
     """
+    '''Determine if 80% of free map cells are occupied by active orders'''
+    def too_many_orders(self):
+        total_cells = MAP_SIZE * MAP_SIZE
+        obstacle_cells = np.sum(self.grid == 1)
+        warehouse_cell = 1
+        free_cells = total_cells - obstacle_cells - warehouse_cell
+
+        active_orders = len([order for order in self.orders if not order.get('delivered')])
+
+        if active_orders >= 0.8 * free_cells:
+            return True
+        return False
 
     '''Draws the grid, robots, and order states'''
     def draw_grid(self):
@@ -370,10 +382,13 @@ class Simulation:
 
             # Every 10 seconds, generate one new order
             if self.elapsed_seconds % 10 == 0:
-                new_order = self.generate_order()
-                new_order['order_id'] = self.order_id_counter
-                self.orders.append(new_order)
-                self.order_id_counter += 1
+                if not self.too_many_orders():
+                    new_order = self.generate_order()
+                    new_order['order_id'] = self.order_id_counter
+                    self.orders.append(new_order)
+                    self.order_id_counter += 1
+                else:
+                    print("[WARNING] Too many active orders! Skipping order generation.")
 
             # On the next tick, assign any unassigned orders in batch
             if self.elapsed_seconds % 10 == 1:
