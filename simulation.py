@@ -137,6 +137,7 @@ class Simulation:
         self.screen = pygame.display.set_mode((MAP_SIZE * CELL_SIZE, MAP_SIZE * CELL_SIZE + 120))       # Create a display window
         pygame.display.set_caption("FOODIE Simulation")     # Set the window title
         self.clock = pygame.time.Clock()                    # Create a clock to manage the frame rate
+        self.start_time = pygame.time.get_ticks()           # Time when simulation started (in ms)
         self.elapsed_seconds = 0                            # How long the simulation has been running
         self.order_id_counter = len(orders) + 1             # Generating unique order IDs
         self.font = pygame.font.SysFont(None, 18)           # GUI font used
@@ -360,6 +361,9 @@ class Simulation:
         panel_top = MAP_SIZE * CELL_SIZE + 10
         line_height = 22
         padding = 10
+        elapsed_ms = pygame.time.get_ticks() - self.start_time
+        elapsed_sec = elapsed_ms // 1000
+
 
         # Draw background panel
         pygame.draw.rect(
@@ -371,7 +375,7 @@ class Simulation:
         # Combined title + total + delivered
         delivered_count = sum(robot.deliveries for robot in self.robots)
         header_text = self.font.render(
-            f"Delivery Stats -- Total Orders: {self.order_id_counter - 1} | Delivered: {delivered_count} --",
+            f"Delivery Stats | Time: {elapsed_sec}s | Total: {self.order_id_counter - 1} | Delivered: {delivered_count}",
             True, (0, 0, 0)
         )
         self.screen.blit(header_text, (padding, panel_top))
@@ -418,7 +422,10 @@ class Simulation:
             pygame.display.flip()
         # After simulation ends, print stats to console
         print("\n==== DELIVERY STATS ====")
-        print(f"\nTotal Delivered Orders: {sum(robot.deliveries for robot in self.robots)}")
+        elapsed_ms = pygame.time.get_ticks() - self.start_time
+        elapsed_sec = elapsed_ms // 1000
+        print(f"Total Simulation Time: {elapsed_sec} seconds")
+        print(f"Total Delivered Orders: {sum(robot.deliveries for robot in self.robots)}")
         for robot in self.robots:
             avg_time = robot.total_delivery_time / robot.deliveries if robot.deliveries else 0
             print(f"{robot.robot_id}: {robot.deliveries} deliveries, avg time = {avg_time:.2f} sec")
