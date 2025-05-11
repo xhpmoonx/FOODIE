@@ -4,7 +4,7 @@ import pygame
 import sys
 import random
 from config import MAP_SIZE, FW_LOCATION
-from pathfinding import astar,dfs,bfs,dijkstra
+from pathfinding import astar,dfs,bfs,dijkstra 
 import numpy as np
 
 CELL_SIZE = 30                        # Size of each grid cell in pixels
@@ -51,14 +51,20 @@ class Robot:
             self.total_delivery_time += delivery_time       # Add to delivery time
             self.deliveries += 1                            # Add delivery count
             next_target = self.orders_queue[0]['location'] if self.orders_queue else FW_LOCATION         # Next location
+            
+            #NOTE :For testing different pathfindings, we can easily call them here 
             path = astar(self.grid, self.position, next_target)                                          # Path to next location
+
             if path:
                 self.path = path[1:]
             else:
                 print(f"[ERROR] Robot {self.robot_id} cannot find path to {next_target} from {self.position}")
         else:
             if self.position != FW_LOCATION:
+                
+                #NOTE :For testing different pathfindings, we can easily call them here 
                 path = astar(self.grid, self.position, FW_LOCATION)
+
                 if path:
                     self.path = path[1:]
                 self.busy = True
@@ -95,7 +101,7 @@ class Robot:
             self.wait_start_time = pygame.time.get_ticks()                   # Start waiting timer
 
         if self.waiting:
-            if pygame.time.get_ticks() - self.wait_start_time >= 1500:       # Wait 1.5 seconds (5000 milliseconds)
+            if pygame.time.get_ticks() - self.wait_start_time >= 1000:       # Wait 1.5 seconds (1000 milliseconds)
                 self.waiting = False
                 self.at_warehouse = False                                    # Done waiting
             else:
@@ -179,7 +185,10 @@ class Simulation:
                 last_pos = robot.position
                 valid = True
                 for order in perm:
+
+                    #NOTE :For testing different pathfindings, we can easily call them here 
                     path = astar(self.grid, last_pos, order['location'])
+
                     if not path:
                         valid = False
                         break
@@ -193,7 +202,10 @@ class Simulation:
             if best_order_sequence:
                 last_pos = robot.position
                 for order in best_order_sequence:
+
+                    #NOTE :For testing different pathfindings, we can easily call them here 
                     path = astar(self.grid, last_pos, order['location'])
+
                     robot.add_order(path, order)
                     order['assigned'] = True
                     last_pos = order['location']
@@ -204,6 +216,8 @@ class Simulation:
         existing_locations = {order['location'] for order in self.orders}  # Collect all current order locations
         while True:
             x, y = random.randint(0, MAP_SIZE - 1), random.randint(0, MAP_SIZE - 1)
+
+            #NOTE :For testing different pathfindings, we can easily call them here 
             if (
                 self.grid[x][y] == 0 and                      # Not an obstacle
                 (x, y) != FW_LOCATION and                     # Not the warehouse
@@ -279,6 +293,7 @@ class Simulation:
 
         return False
     """
+
     '''Determine if 80% of free map cells are occupied by active orders'''
     def too_many_orders(self):
         total_cells = MAP_SIZE * MAP_SIZE
@@ -339,6 +354,7 @@ class Simulation:
         
         # Draw stats
         self.draw_stats_panel()
+        
     '''Displays delivery stats below the grid'''
     def draw_stats_panel(self):
         panel_top = MAP_SIZE * CELL_SIZE + 10
