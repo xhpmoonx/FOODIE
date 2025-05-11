@@ -139,7 +139,7 @@ class Simulation:
         self.clock = pygame.time.Clock()                    # Create a clock to manage the frame rate
         self.elapsed_seconds = 0                            # How long the simulation has been running
         self.order_id_counter = len(orders) + 1             # Generating unique order IDs
-        self.font = pygame.font.SysFont(None, 28)           # GUI font used
+        self.font = pygame.font.SysFont(None, 18)           # GUI font used
         for robot in self.robots:
             robot.grid = self.grid                          # Access to the shared grid
 
@@ -368,21 +368,21 @@ class Simulation:
             (0, MAP_SIZE * CELL_SIZE, MAP_SIZE * CELL_SIZE, 110)
         )
 
-        # Title
-        title = self.font.render("Delivery Stats", True, (0, 0, 0))
-        self.screen.blit(title, (padding, panel_top))
-
-        # Total orders
-        total_orders = self.font.render(f"Total Orders: {self.order_id_counter - 1}", True, (0, 0, 0))
-        self.screen.blit(total_orders, (padding, panel_top + line_height))
+        # Combined title + total + delivered
+        delivered_count = sum(robot.deliveries for robot in self.robots)
+        header_text = self.font.render(
+            f"Delivery Stats -- Total Orders: {self.order_id_counter - 1} | Delivered: {delivered_count} --",
+            True, (0, 0, 0)
+        )
+        self.screen.blit(header_text, (padding, panel_top))
 
         # Robot stats
         for i, robot in enumerate(self.robots):
             avg_time = robot.total_delivery_time / robot.deliveries if robot.deliveries else 0
             stats_line = f"{robot.robot_id}: {robot.deliveries} deliveries | avg: {avg_time:.1f}s"
             text = self.font.render(stats_line, True, (0, 0, 0))
-            self.screen.blit(text, (padding, panel_top + line_height * (i + 2)))
-    
+            self.screen.blit(text, (padding, panel_top + line_height * (i + 1)))
+
     '''Main simulation loop'''
     def run(self):
         running = True
@@ -418,6 +418,7 @@ class Simulation:
             pygame.display.flip()
         # After simulation ends, print stats to console
         print("\n==== DELIVERY STATS ====")
+        print(f"\nTotal Delivered Orders: {sum(robot.deliveries for robot in self.robots)}")
         for robot in self.robots:
             avg_time = robot.total_delivery_time / robot.deliveries if robot.deliveries else 0
             print(f"{robot.robot_id}: {robot.deliveries} deliveries, avg time = {avg_time:.2f} sec")
